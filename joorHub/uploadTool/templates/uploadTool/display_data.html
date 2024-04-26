@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Data Display{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto p-4">
+    <h1 class="text-2xl font-bold mb-4">Uploaded Data</h1>
+    <div>
+        <label for="headerSelect">Assign headers:</label>
+        <select id="headerSelect">
+            {% for header in preset_headers %}
+            <option value="{{ header }}">{{ header }}</option>
+            {% endfor %}
+        </select>
+        <button onclick="assignHeader()">Assign to Selected Column</button>
+    </div>
+    <div class="data-table-container" style="max-height: calc(100vh - 10rem); overflow-y: auto; overflow-x: auto;">
+        <table class="min-w-full bg-white rounded-lg shadow overflow-hidden data-table" id="data-table">
+            <thead class="bg-gray-100">
+                {% if data %}
+                <tr>
+                    {% for key in data.0.keys %}
+                    <th onclick="selectColumn('{{ key }}')" id="{{ key }}" class="header-cell px-6 py-3 border-b-2 border-gray-300 text-left text-xs leading-4 font-medium text-gray-600 uppercase tracking-wider">
+                        {{ key }}
+                    </th>
+                    {% endfor %}
+                </tr>
+                </thead>
+                <tbody>
+                    {% for row in data %}
+                    <tr>
+                        {% for key, value in row.items %}
+                        <td class="px-6 py-4 whitespace-no-wrap border-b border-gray-200">
+                            {{ value }}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% else %}
+                <tr>
+                    <td colspan="100%">No data to display.</td>
+                </tr>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+    <button onclick="submitNewHeaders()">Submit Changes</button>
+</div>
+
+<script>
+    var selectedColumn = null;
+
+    function selectColumn(columnId) {
+        selectedColumn = columnId;
+        var headers = document.querySelectorAll('.header-cell');
+        headers.forEach(header => {
+            header.style.backgroundColor = 'transparent';  // Reset style
+        });
+        document.getElementById(columnId).style.backgroundColor = 'yellow';  // Highlight selected
+    }
+
+    function assignHeader() {
+        if (!selectedColumn) {
+            alert('Please select a column first.');
+            return;
+        }
+        var headerName = document.getElementById('headerSelect').value;
+        document.getElementById(selectedColumn).textContent = headerName;
+    }
+
+    function submitNewHeaders() {
+        var headers = [];
+        document.querySelectorAll(".data-table th").forEach(function(th) {
+            headers.push(th.textContent);
+        });
+
+        var form = new FormData();
+        form.append("headers", JSON.stringify(headers));
+
+        fetch("{% url 'upload_file' %}", {
+            method: "POST",
+            body: form,
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}"
+            }
+        }).then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        }).then(data => {
+            console.log(data);
+            // Handle response here
+        }).catch(error => {
+            console.error('There has been a problem with your fetch operation:', error);
+        });
+    }
+    
+</script>
+{% endblock %}
